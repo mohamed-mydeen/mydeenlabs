@@ -27,13 +27,17 @@ function isRateLimited(ip: string): boolean {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://mydeen.vercel.app';
-  const origin = req.headers.origin || '';
+  const configuredOrigins = (process.env.ALLOWED_ORIGIN || 'https://mydeen.vercel.app')
+    .split(',')
+    .map((o) => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+  const primaryOrigin = configuredOrigins[0] || 'https://mydeen.vercel.app';
+  const origin = (req.headers.origin || '').replace(/\/+$/, '');
 
-  if (origin === allowedOrigin || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+  if (configuredOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+    res.setHeader('Access-Control-Allow-Origin', primaryOrigin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');

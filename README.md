@@ -31,7 +31,7 @@ Built with React, TypeScript, Vite, Tailwind CSS, Supabase Auth & Realtime, Post
 
 ## 3. Deploy Mydeen Analytics to Vercel
 
-1. Import `/home/mohamed/Documents/Portfolio/mydeen-analytics` as a new Vercel project (domain: `https://mydeen-analytics.vercel.app/`).
+1. Import `https://github.com/mohamed-mydeen/mydeenlabs` as a new Vercel project (domain: `https://mydeenlabs.vercel.app/`).
 2. Add the environment variables from `.env.example` in **Vercel -> Project Settings -> Environment Variables**:
    - **Client**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`
    - **Server (Secret)**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `POSTHOG_PERSONAL_API_KEY`, `POSTHOG_PROJECT_ID`, `POSTHOG_API_HOST`, `ALLOWED_ORIGIN=https://mydeen.vercel.app`, `LIVE_VISITOR_TIMEOUT_SECONDS=90`
@@ -42,11 +42,11 @@ Built with React, TypeScript, Vite, Tailwind CSS, Supabase Auth & Realtime, Post
 ## 4. Enable Tracking on Portfolio (`mydeen`)
 
 The PostHog SDK and live visitor heartbeat are already integrated in `mydeen/src/utils/analytics.ts` and `mydeen/src/App.tsx`.
-In your **Portfolio Vercel Project** (`mydeen`), add these 3 public environment variables and redeploy:
+In your **Portfolio Vercel Project** (`mydeen`), add these public environment variables and redeploy:
 
 ```env
 VITE_POSTHOG_KEY=phc_your_posthog_project_key
 VITE_POSTHOG_HOST=https://us.i.posthog.com
-VITE_ANALYTICS_HEARTBEAT_URL=https://mydeen-analytics.vercel.app/api/heartbeat
-VITE_CONTACT_API_URL=https://mydeen-analytics.vercel.app/api/contact
+VITE_ANALYTICS_HEARTBEAT_URL=https://mydeenlabs.vercel.app/api/heartbeat
+VITE_CONTACT_API_URL=https://mydeenlabs.vercel.app/api/contact
 ```
