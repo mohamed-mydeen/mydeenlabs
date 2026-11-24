@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { LiveVisitor } from '../types/analytics';
-import { supabase } from '../services/supabaseClient';
+import { supabase, subscribeToTableChanges } from '../services/supabaseClient';
 
 const ACTIVE_WINDOW_SECONDS = 90;
 
@@ -45,19 +45,13 @@ export function useLiveVisitors() {
   useEffect(() => {
     fetchLive();
 
-    const client = supabase;
-    if (!client) return;
-
-    const channel = client
-      .channel('live-visitors-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'live_visitors' },
-        () => {
-          fetchLive();
-        }
-      )
-      .subscribe();
+    const unsubscribe = subscribeToTableChanges(
+      'live-visitors-realtime',
+      'live_visitors',
+      () => {
+        fetchLive();
+      }
+    );
 
     // Prune stale sessions every 10 seconds so inactive visitors disappear promptly
     const pruneInterval = setInterval(() => {
@@ -66,7 +60,7 @@ export function useLiveVisitors() {
 
     return () => {
       clearInterval(pruneInterval);
-      client.removeChannel(channel);
+      unsubscribe();
     };
   }, [fetchLive]);
 

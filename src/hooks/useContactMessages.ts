@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ContactMessage } from '../types/analytics';
-import { supabase } from '../services/supabaseClient';
+import { supabase, subscribeToTableChanges } from '../services/supabaseClient';
 
 export function useContactMessages() {
   const [messages, setMessages] = useState<ContactMessage[]>([]);
@@ -34,46 +34,30 @@ export function useContactMessages() {
   useEffect(() => {
     fetchMessages();
 
-    const client = supabase;
-    if (!client) return;
-
-    const channel = client
-      .channel('contact-messages-realtime')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'contact_messages' },
-        (payload) => {
-          const inserted = payload.new as ContactMessage;
+    const unsubscribe = subscribeToTableChanges<ContactMessage>(
+      'contact-messages-realtime',
+      'contact_messages',
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const inserted = payload.new;
           setMessages((prev) => {
             if (prev.some((m) => m.id === inserted.id)) return prev;
             return [inserted, ...prev];
           });
           setNewMessageAlert(inserted);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'contact_messages' },
-        (payload) => {
-          const updated = payload.new as ContactMessage;
+        } else if (payload.eventType === 'UPDATE') {
+          const updated = payload.new;
           setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'contact_messages' },
-        (payload) => {
-          const deletedId = (payload.old as { id?: string })?.id;
+        } else if (payload.eventType === 'DELETE') {
+          const deletedId = payload.old?.id;
           if (deletedId) {
             setMessages((prev) => prev.filter((m) => m.id !== deletedId));
           }
         }
-      )
-      .subscribe();
+      }
+    );
 
-    return () => {
-      client.removeChannel(channel);
-    };
+    return unsubscribe;
   }, [fetchMessages]);
 
   const updateFields = useCallback(
