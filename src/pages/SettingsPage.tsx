@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   User,
   Lock,
@@ -10,11 +11,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useAnalytics } from '../hooks/useAnalytics';
+import { HybridCard, HYBRID_EASE } from '../components/MotionPrimitives';
 
 export const SettingsPage: React.FC = () => {
   const { user, signOut, updatePassword, isConfigured } = useAuth();
   const { data, error: analyticsError } = useAnalytics('today');
   const navigate = useNavigate();
+  const reduced = useReducedMotion();
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -65,12 +68,12 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* Account Information */}
-      <div className="rounded-2xl bg-[#A5A79B]/20 dark:bg-[#1a1a1a] border border-[#A5A79B]/40 dark:border-white/10 p-5 space-y-3">
+      <HybridCard className="p-5 space-y-3">
         <div className="flex items-center gap-2">
           <User size={16} />
           <h3 className="text-base font-bold font-display">Account Information</h3>
         </div>
-        <div className="text-xs font-mono space-y-1.5 bg-[#fdfcf9]/70 dark:bg-[#141414] p-3.5 rounded-xl border border-[#A5A79B]/30 dark:border-white/10">
+        <div className="text-xs font-mono space-y-2 hybrid-inset p-3.5 rounded-xl">
           <div className="flex justify-between gap-2">
             <span className="opacity-65">Admin Email:</span>
             <span className="font-semibold">{user?.email || 'Unknown'}</span>
@@ -80,23 +83,23 @@ export const SettingsPage: React.FC = () => {
             <span className="truncate max-w-[200px]">{user?.id || '—'}</span>
           </div>
         </div>
-      </div>
+      </HybridCard>
 
       {/* Analytics Connection Status */}
-      <div className="rounded-2xl bg-[#A5A79B]/20 dark:bg-[#1a1a1a] border border-[#A5A79B]/40 dark:border-white/10 p-5 space-y-3">
+      <HybridCard className="p-5 space-y-3">
         <div className="flex items-center gap-2">
           <Activity size={16} />
           <h3 className="text-base font-bold font-display">Analytics Connection Status</h3>
         </div>
         <div className="space-y-2 text-xs font-mono">
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#fdfcf9]/70 dark:bg-[#141414] border border-[#A5A79B]/30 dark:border-white/10">
+          <div className="flex items-center justify-between p-3.5 rounded-xl hybrid-inset">
             <span>Supabase Auth &amp; Realtime</span>
             <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 size={14} />
               <span>{isConfigured ? 'Connected' : 'Not Configured'}</span>
             </span>
           </div>
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#fdfcf9]/70 dark:bg-[#141414] border border-[#A5A79B]/30 dark:border-white/10">
+          <div className="flex items-center justify-between p-3.5 rounded-xl hybrid-inset">
             <span>PostHog Analytics API</span>
             {posthogConnected ? (
               <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-700 dark:text-emerald-400">
@@ -111,27 +114,33 @@ export const SettingsPage: React.FC = () => {
             )}
           </div>
         </div>
-      </div>
+      </HybridCard>
 
       {/* Password Management */}
-      <div className="rounded-2xl bg-[#A5A79B]/20 dark:bg-[#1a1a1a] border border-[#A5A79B]/40 dark:border-white/10 p-5 space-y-4">
+      <HybridCard className="p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Lock size={16} />
           <h3 className="text-base font-bold font-display">Password Management</h3>
         </div>
 
         <form onSubmit={handlePasswordChange} className="space-y-3">
-          {pwMsg && (
-            <div
-              className={`p-3 rounded-xl text-xs border ${
-                pwMsg.type === 'ok'
-                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-300'
-                  : 'bg-red-500/15 border-red-500/30 text-red-900 dark:text-red-300'
-              }`}
-            >
-              {pwMsg.text}
-            </div>
-          )}
+          <AnimatePresence>
+            {pwMsg && (
+              <motion.div
+                initial={reduced ? { opacity: 1 } : { opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.16, ease: HYBRID_EASE }}
+                className={`p-3 rounded-xl text-xs border ${
+                  pwMsg.type === 'ok'
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-300'
+                    : 'bg-red-500/15 border-red-500/30 text-red-900 dark:text-red-300'
+                }`}
+              >
+                {pwMsg.text}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div>
             <label className="block text-[11px] font-mono uppercase opacity-75 mb-1">
@@ -142,7 +151,7 @@ export const SettingsPage: React.FC = () => {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Minimum 8 characters"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#fdfcf9] dark:bg-[#141414] border border-[#A5A79B]/50 dark:border-white/15 text-sm focus:outline-none"
+              className="hybrid-input px-3.5 py-2.5 min-h-[42px]"
             />
           </div>
 
@@ -155,29 +164,31 @@ export const SettingsPage: React.FC = () => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Re-enter password"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#fdfcf9] dark:bg-[#141414] border border-[#A5A79B]/50 dark:border-white/15 text-sm focus:outline-none"
+              className="hybrid-input px-3.5 py-2.5 min-h-[42px]"
             />
           </div>
 
-          <button
+          <motion.button
             type="submit"
             disabled={saving}
-            className="px-4 py-2.5 rounded-xl bg-[#A5A79B] hover:bg-[#96988c] text-[#181818] text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+            whileTap={reduced ? undefined : { scale: 0.98 }}
+            className="px-4 py-2.5 min-h-[40px] rounded-xl bg-[#A5A79B] hover:bg-[#96988c] text-[#181818] text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
           >
             {saving ? 'Updating...' : 'Update Password'}
-          </button>
+          </motion.button>
         </form>
-      </div>
+      </HybridCard>
 
       {/* Logout */}
       <div className="pt-2">
-        <button
+        <motion.button
+          whileTap={reduced ? undefined : { scale: 0.98 }}
           onClick={handleLogout}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818] text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[42px] rounded-xl bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818] text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
         >
           <LogOut size={14} />
           <span>Logout of Mydeen Analytics</span>
-        </button>
+        </motion.button>
       </div>
     </div>
   );

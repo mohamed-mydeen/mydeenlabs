@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Lock, Mail, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { HYBRID_EASE } from '../components/MotionPrimitives';
 
 export const LoginPage: React.FC = () => {
   const { user, loading: authLoading, isConfigured, signIn } = useAuth();
@@ -10,11 +12,12 @@ export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const reduced = useReducedMotion();
 
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#E8D2B5] dark:bg-[#141414]">
-        <div className="w-9 h-9 rounded-full border-2 border-[#A5A79B] border-t-[#181818] animate-spin" />
+        <div className="w-9 h-9 rounded-full border-2 border-[#A5A79B] border-t-[#181818] dark:border-t-[#E8D2B5] animate-spin" />
       </div>
     );
   }
@@ -42,23 +45,28 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#E8D2B5] dark:bg-[#141414] text-[#181818] dark:text-[#f2efe9] flex flex-col justify-center items-center px-4 py-10">
-      <div className="w-full max-w-md">
+      <motion.div
+        initial={reduced ? { opacity: 1 } : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: HYBRID_EASE }}
+        className="w-full max-w-md"
+      >
         {/* Header Branding */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-12 h-12 rounded-full bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818] flex items-center justify-center font-display font-bold text-base border border-[#A5A79B]/50 shadow-md mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818] flex items-center justify-center font-display font-bold text-base border border-[#A5A79B]/50 shadow-md mb-3">
             /m
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold font-display tracking-tight">
             Mydeen Analytics
           </h1>
           <p className="text-xs font-mono opacity-70 mt-1">
-            Private Owner Dashboard &bull; mydeen.vercel.app
+            Private Owner Workspace &bull; mydeen.vercel.app
           </p>
         </div>
 
-        {/* OS-Inspired Login Card */}
-        <div className="rounded-2xl bg-[#A5A79B]/25 dark:bg-[#1a1a1a] border border-[#A5A79B]/45 dark:border-white/10 shadow-2xl overflow-hidden backdrop-blur-md">
-          <div className="h-9 bg-[#A5A79B]/35 dark:bg-[#252525] border-b border-[#A5A79B]/30 dark:border-white/10 px-4 flex items-center justify-between">
+        {/* Hybrid iOS Glass + Ubuntu Window Card */}
+        <div className="hybrid-panel rounded-2xl shadow-2xl overflow-hidden">
+          <div className="h-10 bg-[#dbc3a4]/70 dark:bg-[#222222]/85 border-b border-[#A5A79B]/35 dark:border-white/10 px-4 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
               <span className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
@@ -81,12 +89,20 @@ export const LoginPage: React.FC = () => {
               </div>
             )}
 
-            {error && (
-              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-900 dark:text-red-300 flex items-start gap-2">
-                <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={reduced ? { opacity: 1 } : { opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-900 dark:text-red-300 flex items-start gap-2"
+                >
+                  <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div>
               <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider mb-1.5 opacity-80">
@@ -104,7 +120,7 @@ export const LoginPage: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@mydeen.dev"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#fdfcf9] dark:bg-[#141414] border border-[#A5A79B]/50 dark:border-white/15 text-sm text-[#181818] dark:text-[#f2efe9] focus:outline-none focus:border-[#181818] dark:focus:border-[#E8D2B5]"
+                  className="hybrid-input pl-10 pr-4 py-2.5 min-h-[42px]"
                 />
               </div>
             </div>
@@ -133,12 +149,12 @@ export const LoginPage: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#fdfcf9] dark:bg-[#141414] border border-[#A5A79B]/50 dark:border-white/15 text-sm text-[#181818] dark:text-[#f2efe9] focus:outline-none focus:border-[#181818] dark:focus:border-[#E8D2B5]"
+                  className="hybrid-input pl-10 pr-10 py-2.5 min-h-[42px]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 opacity-55 hover:opacity-100 cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 opacity-55 hover:opacity-100 cursor-pointer"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -146,21 +162,22 @@ export const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            <button
+            <motion.button
               type="submit"
               disabled={submitting}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#A5A79B] hover:bg-[#96988c] text-[#181818] font-semibold text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50"
+              whileTap={reduced ? undefined : { scale: 0.985 }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 min-h-[44px] rounded-xl bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818] hover:opacity-90 font-semibold text-sm transition-opacity shadow-sm cursor-pointer disabled:opacity-50"
             >
               <span>{submitting ? 'Signing in...' : 'Sign In to Dashboard'}</span>
               {!submitting && <ArrowRight size={15} />}
-            </button>
+            </motion.button>
 
             <p className="text-[11px] font-mono text-center opacity-60 pt-1">
               Private access only. Public registration is disabled.
             </p>
           </form>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

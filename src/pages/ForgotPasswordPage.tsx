@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { HYBRID_EASE } from '../components/MotionPrimitives';
 
 export const ForgotPasswordPage: React.FC = () => {
   const { sendPasswordReset } = useAuth();
@@ -9,6 +11,7 @@ export const ForgotPasswordPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const reduced = useReducedMotion();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,10 +29,15 @@ export const ForgotPasswordPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#E8D2B5] dark:bg-[#141414] text-[#181818] dark:text-[#f2efe9] flex flex-col justify-center items-center px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl bg-[#A5A79B]/25 dark:bg-[#1a1a1a] border border-[#A5A79B]/45 dark:border-white/10 shadow-2xl p-6 sm:p-7 space-y-4">
+      <motion.div
+        initial={reduced ? { opacity: 1 } : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: HYBRID_EASE }}
+        className="w-full max-w-md hybrid-panel rounded-2xl shadow-2xl p-6 sm:p-7 space-y-4"
+      >
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-xs font-mono opacity-75 hover:opacity-100"
+          className="inline-flex items-center gap-1.5 text-xs font-mono opacity-75 hover:opacity-100 transition-opacity"
         >
           <ArrowLeft size={13} />
           <span>Back to Login</span>
@@ -70,21 +78,22 @@ export const ForgotPasswordPage: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@mydeen.dev"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#fdfcf9] dark:bg-[#141414] border border-[#A5A79B]/50 dark:border-white/15 text-sm focus:outline-none focus:border-[#181818]"
+                  className="hybrid-input pl-10 pr-4 py-2.5 min-h-[42px]"
                 />
               </div>
             </div>
 
-            <button
+            <motion.button
               type="submit"
               disabled={submitting}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#A5A79B] hover:bg-[#96988c] text-[#181818] font-semibold text-sm transition-all cursor-pointer disabled:opacity-50"
+              whileTap={reduced ? undefined : { scale: 0.985 }}
+              className="w-full py-2.5 px-4 min-h-[44px] rounded-xl bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818] hover:opacity-90 font-semibold text-sm transition-opacity cursor-pointer disabled:opacity-50"
             >
               {submitting ? 'Sending link...' : 'Send Reset Link'}
-            </button>
+            </motion.button>
           </form>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 };

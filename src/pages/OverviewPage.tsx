@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   Users,
   UserCheck,
@@ -14,11 +15,17 @@ import { StatCard } from '../components/StatCard';
 import { TrafficChart } from '../components/TrafficChart';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { EmptyStatePanel, ErrorStatePanel, LoadingPanel } from '../components/StateBanner';
+import {
+  AnimatedNumber,
+  AnimatedProgressBar,
+  HybridCard,
+} from '../components/MotionPrimitives';
 import { formatDuration, formatNumber } from '../utils/formatters';
 
 export const OverviewPage: React.FC = () => {
   const { range, setRange, data, loading, error, refresh } = useAnalytics('7d');
   const { visitors: liveVisitors } = useLiveVisitors();
+  const reduced = useReducedMotion();
 
   return (
     <div className="space-y-6">
@@ -35,15 +42,16 @@ export const OverviewPage: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-2.5">
           <DateRangePicker value={range} onChange={setRange} />
-          <button
+          <motion.button
+            whileTap={reduced ? undefined : { scale: 0.94 }}
             onClick={refresh}
             disabled={loading}
-            className="p-2 rounded-xl bg-[#A5A79B]/20 dark:bg-[#1a1a1a] border border-[#A5A79B]/40 dark:border-white/10 hover:bg-[#A5A79B]/35 transition-colors cursor-pointer disabled:opacity-50"
+            className="min-w-[38px] min-h-[38px] p-2 rounded-xl hybrid-panel hover:border-[#181818]/30 dark:hover:border-[#E8D2B5]/30 transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center"
             title="Refresh analytics"
             aria-label="Refresh analytics"
           >
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -58,26 +66,36 @@ export const OverviewPage: React.FC = () => {
             <StatCard
               label="Total Visitors"
               value={formatNumber(data.overview.totalVisitors)}
+              numericValue={data.overview.totalVisitors}
+              formatter={formatNumber}
               icon={Users}
             />
             <StatCard
               label="Unique Visitors"
               value={formatNumber(data.overview.uniqueVisitors)}
+              numericValue={data.overview.uniqueVisitors}
+              formatter={formatNumber}
               icon={UserCheck}
             />
             <StatCard
               label="Page Views"
               value={formatNumber(data.overview.pageViews)}
+              numericValue={data.overview.pageViews}
+              formatter={formatNumber}
               icon={Eye}
             />
             <StatCard
               label="Avg Duration"
               value={formatDuration(data.overview.avgSessionDurationSeconds)}
+              numericValue={data.overview.avgSessionDurationSeconds}
+              formatter={formatDuration}
               icon={Clock}
             />
             <StatCard
               label="Live Visitors"
               value={formatNumber(liveVisitors.length)}
+              numericValue={liveVisitors.length}
+              formatter={formatNumber}
               sublabel="Active in last 90s"
               icon={Radio}
               isLive
@@ -89,7 +107,7 @@ export const OverviewPage: React.FC = () => {
           ) : (
             <>
               {/* Visitor Traffic Chart */}
-              <div className="rounded-2xl bg-[#A5A79B]/20 dark:bg-[#1a1a1a] border border-[#A5A79B]/40 dark:border-white/10 p-4 sm:p-6">
+              <HybridCard className="p-4 sm:p-6">
                 <div className="mb-4">
                   <h3 className="text-base sm:text-lg font-bold font-display">
                     Visitor Traffic
@@ -99,10 +117,10 @@ export const OverviewPage: React.FC = () => {
                   </p>
                 </div>
                 <TrafficChart series={data.trafficSeries} />
-              </div>
+              </HybridCard>
 
               {/* Custom Portfolio Interactions */}
-              <div className="rounded-2xl bg-[#A5A79B]/20 dark:bg-[#1a1a1a] border border-[#A5A79B]/40 dark:border-white/10 p-4 sm:p-6">
+              <HybridCard className="p-4 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <MousePointerClick size={16} />
                   <h3 className="text-base font-bold font-display">
@@ -119,23 +137,23 @@ export const OverviewPage: React.FC = () => {
                   ].map((ev) => (
                     <div
                       key={ev.key}
-                      className="p-3 rounded-xl bg-[#fdfcf9]/70 dark:bg-[#141414] border border-[#A5A79B]/30 dark:border-white/10"
+                      className="p-3.5 rounded-xl hybrid-inset"
                     >
                       <p className="text-[10px] font-mono uppercase opacity-65 truncate">
                         {ev.label}
                       </p>
-                      <p className="text-xl font-bold font-display mt-1">
-                        {formatNumber(ev.val)}
+                      <p className="text-xl font-bold font-display mt-1 tabular-nums">
+                        <AnimatedNumber value={ev.val} formatter={formatNumber} />
                       </p>
                     </div>
                   ))}
                 </div>
-              </div>
+              </HybridCard>
 
               {/* Bottom 3-Column Overview Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Top Visited Pages */}
-                <div className="rounded-2xl bg-[#A5A79B]/20 dark:bg-[#1a1a1a] border border-[#A5A79B]/40 dark:border-white/10 p-4 sm:p-5">
+                <HybridCard className="p-4 sm:p-5">
                   <h3 className="text-base font-bold font-display mb-3">
                     Top Visited Pages
                   </h3>
@@ -149,46 +167,41 @@ export const OverviewPage: React.FC = () => {
                           className="flex items-center justify-between gap-3 text-xs py-1.5 border-b border-[#A5A79B]/20 dark:border-white/5 last:border-0"
                         >
                           <span className="font-mono truncate">{p.path}</span>
-                          <span className="font-mono font-bold shrink-0">
+                          <span className="font-mono font-bold shrink-0 tabular-nums">
                             {formatNumber(p.views)}
                           </span>
                         </div>
                       ))}
                     </div>
                   )}
-                </div>
+                </HybridCard>
 
                 {/* Traffic Sources Overview */}
-                <div className="rounded-2xl bg-[#A5A79B]/20 dark:bg-[#1a1a1a] border border-[#A5A79B]/40 dark:border-white/10 p-4 sm:p-5">
+                <HybridCard className="p-4 sm:p-5">
                   <h3 className="text-base font-bold font-display mb-3">
                     Traffic Sources
                   </h3>
                   {data.sources.length === 0 ? (
                     <p className="text-xs font-mono opacity-60">No analytics data available yet.</p>
                   ) : (
-                    <div className="space-y-2.5">
+                    <div className="space-y-3">
                       {data.sources.slice(0, 5).map((s) => (
-                        <div key={s.source} className="space-y-1">
+                        <div key={s.source} className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-medium truncate">{s.source}</span>
-                            <span className="font-mono opacity-75">
+                            <span className="font-mono opacity-75 tabular-nums">
                               {formatNumber(s.visitors)} ({s.percentage}%)
                             </span>
                           </div>
-                          <div className="h-1.5 rounded-full bg-[#A5A79B]/25 dark:bg-white/10 overflow-hidden">
-                            <div
-                              className="h-full bg-[#181818] dark:bg-[#E8D2B5] rounded-full"
-                              style={{ width: `${Math.min(100, s.percentage)}%` }}
-                            />
-                          </div>
+                          <AnimatedProgressBar percentage={s.percentage} variant="primary" />
                         </div>
                       ))}
                     </div>
                   )}
-                </div>
+                </HybridCard>
 
                 {/* Device Breakdown */}
-                <div className="rounded-2xl bg-[#A5A79B]/20 dark:bg-[#1a1a1a] border border-[#A5A79B]/40 dark:border-white/10 p-4 sm:p-5">
+                <HybridCard className="p-4 sm:p-5">
                   <h3 className="text-base font-bold font-display mb-3">
                     Device Breakdown
                   </h3>
@@ -204,24 +217,19 @@ export const OverviewPage: React.FC = () => {
                           data.devices.deviceTypes.tablet || 1;
                       const pct = Math.round((d.count / total) * 100);
                       return (
-                        <div key={d.label} className="space-y-1">
+                        <div key={d.label} className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-medium">{d.label}</span>
-                            <span className="font-mono opacity-75">
+                            <span className="font-mono opacity-75 tabular-nums">
                               {formatNumber(d.count)} ({pct}%)
                             </span>
                           </div>
-                          <div className="h-1.5 rounded-full bg-[#A5A79B]/25 dark:bg-white/10 overflow-hidden">
-                            <div
-                              className="h-full bg-[#A5A79B] rounded-full"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
+                          <AnimatedProgressBar percentage={pct} variant="sage" />
                         </div>
                       );
                     })}
                   </div>
-                </div>
+                </HybridCard>
               </div>
             </>
           )}

@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useId } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { DateRangeOption } from '../types/analytics';
+import { HYBRID_EASE } from './MotionPrimitives';
 
 interface DateRangePickerProps {
   value: DateRangeOption;
@@ -14,22 +16,40 @@ const OPTIONS: { value: DateRangeOption; label: string }[] = [
 ];
 
 export const DateRangePicker: React.FC<DateRangePickerProps> = ({ value, onChange }) => {
+  const layoutGroupId = useId();
+  const reduced = useReducedMotion();
+
   return (
-    <div className="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl bg-[#A5A79B]/20 dark:bg-[#1a1a1a] border border-[#A5A79B]/40 dark:border-white/10">
+    <div
+      role="tablist"
+      aria-label="Analytics date range"
+      className="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl hybrid-panel"
+    >
       {OPTIONS.map((opt) => {
         const active = value === opt.value;
         return (
-          <button
+          <motion.button
             key={opt.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            whileTap={reduced ? undefined : { scale: 0.96 }}
             onClick={() => onChange(opt.value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
+            className={`relative px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-colors cursor-pointer min-h-[32px] ${
               active
-                ? 'bg-[#A5A79B] text-[#181818] shadow-xs'
-                : 'text-[#181818]/75 dark:text-[#f2efe9]/75 hover:text-[#181818] dark:hover:text-[#f2efe9]'
+                ? 'text-[#181818]'
+                : 'text-[#181818]/70 dark:text-[#f2efe9]/70 hover:text-[#181818] dark:hover:text-[#f2efe9]'
             }`}
           >
-            {opt.label}
-          </button>
+            {active && (
+              <motion.span
+                layoutId={`dateRangePill-${layoutGroupId}`}
+                transition={{ duration: 0.22, ease: HYBRID_EASE }}
+                className="absolute inset-0 rounded-lg bg-[#A5A79B] shadow-sm -z-0"
+              />
+            )}
+            <span className="relative z-10">{opt.label}</span>
+          </motion.button>
         );
       })}
     </div>

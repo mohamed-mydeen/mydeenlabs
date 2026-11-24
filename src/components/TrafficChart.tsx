@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { TrafficPoint } from '../types/analytics';
 import { formatNumber } from '../utils/formatters';
+import { HYBRID_EASE } from './MotionPrimitives';
 
 interface TrafficChartProps {
   series: TrafficPoint[];
@@ -8,6 +10,7 @@ interface TrafficChartProps {
 
 export const TrafficChart: React.FC<TrafficChartProps> = ({ series }) => {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const reduced = useReducedMotion();
 
   if (!series || series.length === 0) {
     return (
@@ -56,7 +59,7 @@ export const TrafficChart: React.FC<TrafficChartProps> = ({ series }) => {
 
   return (
     <div className="w-full">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 text-xs font-mono">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 text-xs font-mono min-h-[28px]">
         <div className="flex items-center gap-4">
           <span className="inline-flex items-center gap-1.5 text-[#181818]/80 dark:text-[#f2efe9]/80">
             <span className="w-2.5 h-2.5 rounded-full bg-[#181818] dark:bg-[#E8D2B5]" />
@@ -68,12 +71,21 @@ export const TrafficChart: React.FC<TrafficChartProps> = ({ series }) => {
           </span>
         </div>
 
-        {activePoint && (
-          <div className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-[#A5A79B]/25 dark:bg-white/10 text-[#181818] dark:text-[#E8D2B5]">
-            {activePoint.item.date}: {formatNumber(activePoint.item.visitors)} visitors &bull;{' '}
-            {formatNumber(activePoint.item.pageViews)} views
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {activePoint && (
+            <motion.div
+              key={activePoint.item.date}
+              initial={reduced ? { opacity: 1 } : { opacity: 0, y: -3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduced ? { opacity: 0 } : { opacity: 0, y: -3 }}
+              transition={{ duration: 0.14, ease: HYBRID_EASE }}
+              className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-[#A5A79B]/25 dark:bg-white/10 text-[#181818] dark:text-[#E8D2B5] tabular-nums"
+            >
+              {activePoint.item.date}: {formatNumber(activePoint.item.visitors)} visitors &bull;{' '}
+              {formatNumber(activePoint.item.pageViews)} views
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="w-full overflow-hidden">
@@ -101,30 +113,42 @@ export const TrafficChart: React.FC<TrafficChartProps> = ({ series }) => {
 
           {/* Area fill */}
           {areaPath && (
-            <path d={areaPath} fill="#A5A79B" fillOpacity={0.22} />
+            <motion.path
+              d={areaPath}
+              fill="#A5A79B"
+              initial={{ opacity: reduced ? 0.22 : 0 }}
+              animate={{ opacity: 0.22 }}
+              transition={{ duration: 0.5, ease: HYBRID_EASE }}
+            />
           )}
 
           {/* Page views line */}
           {viewsPath && (
-            <path
+            <motion.path
               d={viewsPath}
               fill="none"
               className="stroke-[#181818] dark:stroke-[#E8D2B5]"
               strokeWidth={2.5}
               strokeLinecap="round"
               strokeLinejoin="round"
+              initial={{ pathLength: reduced ? 1 : 0, opacity: reduced ? 1 : 0.4 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 0.65, ease: HYBRID_EASE }}
             />
           )}
 
           {/* Visitors line */}
           {visitorsPath && (
-            <path
+            <motion.path
               d={visitorsPath}
               fill="none"
               stroke="#A5A79B"
               strokeWidth={2.5}
               strokeLinecap="round"
               strokeLinejoin="round"
+              initial={{ pathLength: reduced ? 1 : 0, opacity: reduced ? 1 : 0.4 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 0.65, delay: 0.08, ease: HYBRID_EASE }}
             />
           )}
 
@@ -144,32 +168,42 @@ export const TrafficChart: React.FC<TrafficChartProps> = ({ series }) => {
                 height={height}
                 fill="transparent"
               />
+              {hoveredIdx === idx && (
+                <line
+                  x1={p.x}
+                  y1={padY}
+                  x2={p.x}
+                  y2={height - padY}
+                  stroke="currentColor"
+                  strokeOpacity={0.2}
+                  strokeDasharray="3 3"
+                />
+              )}
               <circle
                 cx={p.x}
                 cy={p.yViews}
                 r={hoveredIdx === idx ? 5 : 3}
-                className="fill-[#181818] dark:fill-[#E8D2B5]"
+                className="fill-[#181818] dark:fill-[#E8D2B5] transition-all duration-150"
               />
               <circle
                 cx={p.x}
                 cy={p.yVisitors}
-                r={hoveredIdx === idx ? 5 : 3}
+                r={hoveredIdx === idx ? 4.5 : 2.5}
                 fill="#A5A79B"
+                className="transition-all duration-150"
               />
             </g>
           ))}
         </svg>
-      </div>
 
-      {/* Date axis labels */}
-      <div className="flex items-center justify-between text-[10px] font-mono text-[#181818]/60 dark:text-[#f2efe9]/60 px-2 mt-1">
-        <span>{series[0]?.date}</span>
-        {series.length > 2 && (
-          <span className="hidden sm:inline">
-            {series[Math.floor(series.length / 2)]?.date}
-          </span>
-        )}
-        <span>{series[series.length - 1]?.date}</span>
+        {/* X-axis labels */}
+        <div className="flex justify-between text-[10px] font-mono opacity-60 px-2 mt-1">
+          <span>{series[0]?.date}</span>
+          {series.length > 2 && (
+            <span>{series[Math.floor(series.length / 2)]?.date}</span>
+          )}
+          <span>{series[series.length - 1]?.date}</span>
+        </div>
       </div>
     </div>
   );

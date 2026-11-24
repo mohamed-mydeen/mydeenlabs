@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Lock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { HYBRID_EASE } from '../components/MotionPrimitives';
 
 export const ResetPasswordPage: React.FC = () => {
   const { updatePassword } = useAuth();
@@ -11,6 +13,7 @@ export const ResetPasswordPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const reduced = useReducedMotion();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +42,12 @@ export const ResetPasswordPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#E8D2B5] dark:bg-[#141414] text-[#181818] dark:text-[#f2efe9] flex flex-col justify-center items-center px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl bg-[#A5A79B]/25 dark:bg-[#1a1a1a] border border-[#A5A79B]/45 dark:border-white/10 shadow-2xl p-6 sm:p-7 space-y-4">
+      <motion.div
+        initial={reduced ? { opacity: 1 } : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: HYBRID_EASE }}
+        className="w-full max-w-md hybrid-panel rounded-2xl shadow-2xl p-6 sm:p-7 space-y-4"
+      >
         <div>
           <h1 className="text-2xl font-bold font-display">Set New Password</h1>
           <p className="text-xs opacity-75 mt-1">
@@ -73,7 +81,7 @@ export const ResetPasswordPage: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Minimum 8 characters"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#fdfcf9] dark:bg-[#141414] border border-[#A5A79B]/50 dark:border-white/15 text-sm focus:outline-none"
+                  className="hybrid-input pl-10 pr-4 py-2.5 min-h-[42px]"
                 />
               </div>
             </div>
@@ -90,21 +98,22 @@ export const ResetPasswordPage: React.FC = () => {
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   placeholder="Re-enter password"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#fdfcf9] dark:bg-[#141414] border border-[#A5A79B]/50 dark:border-white/15 text-sm focus:outline-none"
+                  className="hybrid-input pl-10 pr-4 py-2.5 min-h-[42px]"
                 />
               </div>
             </div>
 
-            <button
+            <motion.button
               type="submit"
               disabled={submitting}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#A5A79B] hover:bg-[#96988c] text-[#181818] font-semibold text-sm transition-all cursor-pointer disabled:opacity-50"
+              whileTap={reduced ? undefined : { scale: 0.985 }}
+              className="w-full py-2.5 px-4 min-h-[44px] rounded-xl bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818] hover:opacity-90 font-semibold text-sm transition-opacity cursor-pointer disabled:opacity-50"
             >
               {submitting ? 'Updating...' : 'Update Password'}
-            </button>
+            </motion.button>
           </form>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 };
