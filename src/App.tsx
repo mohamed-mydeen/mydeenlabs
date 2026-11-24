@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { MotionConfig } from 'framer-motion';
 import { AuthProvider } from './auth/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { SiteProvider } from './context/SiteContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { LoginPage } from './pages/LoginPage';
@@ -20,7 +21,8 @@ export const App: React.FC = () => {
   return (
     <MotionConfig reducedMotion="user">
       <ThemeProvider>
-        <AuthProvider>
+        <SiteProvider>
+          <AuthProvider>
           <BrowserRouter>
             <Routes>
               {/* Public Auth Routes */}
@@ -48,7 +50,8 @@ export const App: React.FC = () => {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
-        </AuthProvider>
+          </AuthProvider>
+        </SiteProvider>
       </ThemeProvider>
     </MotionConfig>
   );

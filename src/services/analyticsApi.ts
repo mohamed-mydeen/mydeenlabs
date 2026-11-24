@@ -1,7 +1,11 @@
 import { AnalyticsDashboardResponse, DateRangeOption } from '../types/analytics';
+import { SiteId } from '../context/SiteContext';
 import { supabase } from './supabaseClient';
 
-export async function fetchAnalyticsData(range: DateRangeOption): Promise<AnalyticsDashboardResponse> {
+export async function fetchAnalyticsData(
+  range: DateRangeOption,
+  site: SiteId = 'mydeen.vercel.app'
+): Promise<AnalyticsDashboardResponse> {
   if (!supabase) {
     throw new Error('Unable to load analytics data. Please try again.');
   }
@@ -14,7 +18,9 @@ export async function fetchAnalyticsData(range: DateRangeOption): Promise<Analyt
     throw new Error('Your session has expired. Please sign in again.');
   }
 
-  const response = await fetch(`/api/analytics?range=${encodeURIComponent(range)}`, {
+  const response = await fetch(
+    `/api/analytics?range=${encodeURIComponent(range)}&site=${encodeURIComponent(site)}`,
+    {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${session.access_token}`,

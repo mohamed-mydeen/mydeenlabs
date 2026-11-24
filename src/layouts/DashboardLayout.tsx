@@ -18,8 +18,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { SITE_OPTIONS, useSite } from '../context/SiteContext';
 import { useContactMessages } from '../hooks/useContactMessages';
-import { HYBRID_EASE } from '../components/MotionPrimitives';
+import { HYBRID_EASE, HybridSelect } from '../components/MotionPrimitives';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
 export const DashboardLayout: React.FC = () => {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { site, setSite, siteUrl, siteLabel } = useSite();
   const { stats: messageStats } = useContactMessages();
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,11 +62,24 @@ export const DashboardLayout: React.FC = () => {
                 <h1 className="text-sm font-bold font-display leading-none tracking-tight">
                   Mydeen Analytics
                 </h1>
-                <p className="text-[10px] font-mono opacity-65 mt-1">
-                  mydeen.vercel.app
+                <p className="text-[10px] font-mono opacity-65 mt-1 truncate max-w-[140px]">
+                  {siteLabel}
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Site Selector Dropdown */}
+          <div className="space-y-1.5">
+            <div className="px-1 text-[10px] font-mono uppercase tracking-widest opacity-50">
+              Property
+            </div>
+            <HybridSelect
+              value={site}
+              options={SITE_OPTIONS}
+              onChange={setSite}
+              ariaLabel="Select site property"
+            />
           </div>
 
           {/* Workspace Navigation */}
@@ -124,12 +139,12 @@ export const DashboardLayout: React.FC = () => {
         {/* Sidebar Footer */}
         <div className="space-y-2.5 pt-4 border-t border-[#A5A79B]/35 dark:border-white/10">
           <a
-            href="https://mydeen.vercel.app/"
+            href={siteUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-between px-3.5 py-2.5 rounded-xl hybrid-inset text-xs font-mono hover:border-[#181818]/30 dark:hover:border-[#E8D2B5]/30 transition-colors"
           >
-            <span>Open Portfolio</span>
+            <span>Open {site === 'mydeenblog.vercel.app' ? 'Blog' : 'Portfolio'}</span>
             <ExternalLink size={13} className="opacity-70" />
           </a>
 
@@ -170,7 +185,7 @@ export const DashboardLayout: React.FC = () => {
               Mydeen Analytics
             </span>
             <span className="text-[10px] font-mono opacity-65">
-              mydeen.vercel.app
+              {siteLabel}
             </span>
           </div>
         </div>
@@ -215,6 +230,20 @@ export const DashboardLayout: React.FC = () => {
               transition={{ duration: 0.2, ease: HYBRID_EASE }}
               className="lg:hidden fixed inset-x-0 top-[57px] z-40 bg-[#E8D2B5]/95 dark:bg-[#181818]/95 backdrop-blur-xl border-b border-[#A5A79B]/45 dark:border-white/10 p-4 shadow-2xl space-y-1.5"
             >
+              <div className="pb-2 mb-1 border-b border-[#A5A79B]/30 dark:border-white/10">
+                <span className="block text-[10px] font-mono uppercase tracking-widest opacity-55 mb-1.5 px-1">
+                  Select Site
+                </span>
+                <HybridSelect
+                  value={site}
+                  options={SITE_OPTIONS}
+                  onChange={(next) => {
+                    setSite(next);
+                    setMobileMenuOpen(false);
+                  }}
+                  ariaLabel="Select site property"
+                />
+              </div>
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 return (

@@ -94,6 +94,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? `timestamp >= toStartOfDay(now())`
       : `timestamp >= now() - INTERVAL ${days} DAY`;
 
+  const rawSite = String(req.query.site || 'mydeen.vercel.app').trim();
+  const ALLOWED_SITES = new Set(['mydeen.vercel.app', 'mydeenblog.vercel.app']);
+  const siteFilter = ALLOWED_SITES.has(rawSite)
+    ? `AND properties.$host = '${rawSite}'`
+    : '';
+  const whereClause = `${intervalFilter} ${siteFilter}`.trim();
+
   try {
     const [
       overviewRows,
@@ -111,55 +118,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         posthogHost,
         posthogProjectId,
         posthogKey,
-        `SELECT count() AS pageviews, count(DISTINCT distinct_id) AS unique_visitors, count(DISTINCT properties.$session_id) AS sessions FROM events WHERE event = '$pageview' AND ${intervalFilter}`
+        `SELECT count() AS pageviews, count(DISTINCT distinct_id) AS unique_visitors, count(DISTINCT properties.$session_id) AS sessions FROM events WHERE event = '$pageview' AND ${whereClause}`
       ),
       runHogQL(
         posthogHost,
         posthogProjectId,
         posthogKey,
-        `SELECT avg(session_dur) FROM (SELECT properties.$session_id AS sid, dateDiff('second', min(timestamp), max(timestamp)) AS session_dur FROM events WHERE ${intervalFilter} AND properties.$session_id IS NOT NULL GROUP BY sid HAVING session_dur > 0)`
+        `SELECT avg(session_dur) FROM (SELECT properties.$session_id AS sid, dateDiff('second', min(timestamp), max(timestamp)) AS session_dur FROM events WHERE ${whereClause} AND properties.$session_id IS NOT NULL GROUP BY sid HAVING session_dur > 0)`
       ),
       runHogQL(
         posthogHost,
         posthogProjectId,
         posthogKey,
-        `SELECT toString(toDate(timestamp)) AS d, count(DISTINCT distinct_id) AS visitors, count() AS views FROM events WHERE event = '$pageview' AND ${intervalFilter} GROUP BY d ORDER BY d ASC`
+        `SELECT toString(toDate(timestamp)) AS d, count(DISTINCT distinct_id) AS visitors, count() AS views FROM events WHERE event = '$pageview' AND ${whereClause} GROUP BY d ORDER BY d ASC`
       ),
       runHogQL(
         posthogHost,
         posthogProjectId,
         posthogKey,
-        `SELECT coalesce(nullIf(properties.$pathname, ''), '/') AS path, count() AS views, count(DISTINCT distinct_id) AS uniq FROM events WHERE event = '$pageview' AND ${intervalFilter} GROUP BY path ORDER BY views DESC LIMIT 20`
+        `SELECT coalesce(nullIf(properties.$pathname, ''), '/') AS path, count() AS views, count(DISTINCT distinct_id) AS uniq FROM events WHERE event = '$pageview' AND ${whereClause} GROUP BY path ORDER BY views DESC LIMIT 20`
       ),
       runHogQL(
         posthogHost,
         posthogProjectId,
         posthogKey,
-        `SELECT coalesce(nullIf(properties.$referring_domain, ''), '$direct') AS ref, count(DISTINCT distinct_id) AS visitors FROM events WHERE event = '$pageview' AND ${intervalFilter} GROUP BY ref ORDER BY visitors DESC LIMIT 20`
+        `SELECT coalesce(nullIf(properties.$referring_domain, ''), '$direct') AS ref, count(DISTINCT distinct_id) AS visitors FROM events WHERE event = '$pageview' AND ${whereClause} GROUP BY ref ORDER BY visitors DESC LIMIT 20`
       ),
       runHogQL(
         posthogHost,
         posthogProjectId,
         posthogKey,
-        `SELECT coalesce(nullIf(properties.$device_type, ''), 'Desktop') AS dtype, count(DISTINCT distinct_id) AS visitors FROM events WHERE event = '$pageview' AND ${intervalFilter} GROUP BY dtype`
+        `SELECT coalesce(nullIf(properties.$device_type, ''), 'Desktop') AS dtype, count(DISTINCT distinct_id) AS visitors FROM events WHERE event = '$pageview' AND ${whereClause} GROUP BY dtype`
       ),
       runHogQL(
         posthogHost,
         posthogProjectId,
         posthogKey,
-        `SELECT coalesce(nullIf(properties.$browser, ''), 'Unknown') AS br, count(DISTINCT distinct_id) AS visitors FROM events WHERE event = '$pageview' AND ${intervalFilter} GROUP BY br ORDER BY visitors DESC LIMIT 10`
+        `SELECT coalesce(nullIf(properties.$browser, ''), 'Unknown') AS br, count(DISTINCT distinct_id) AS visitors FROM events WHERE event = '$pageview' AND ${whereClause} GROUP BY br ORDER BY visitors DESC LIMIT 10`
       ),
       runHogQL(
         posthogHost,
         posthogProjectId,
         posthogKey,
-        `SELECT coalesce(nullIf(properties.$os, ''), 'Unknown') AS os_name, count(DISTINCT distinct_id) AS visitors FROM events WHERE event = '$pageview' AND ${intervalFilter} GROUP BY os_name ORDER BY visitors DESC LIMIT 10`
+        `SELECT coalesce(nullIf(properties.$os, ''), 'Unknown') AS os_name, count(DISTINCT distinct_id) AS visitors FROM events WHERE event = '$pageview' AND ${whereClause} GROUP BY os_name ORDER BY visitors DESC LIMIT 10`
       ),
       runHogQL(
         posthogHost,
         posthogProjectId,
         posthogKey,
-        `SELECT event, count() AS cnt FROM events WHERE event IN ('project_clicked', 'resume_downloaded', 'contact_clicked', 'github_clicked', 'linkedin_clicked') AND ${intervalFilter} GROUP BY event`
+        `SELECT event, count() AS cnt FROM events WHERE event IN ('project_clicked', 'resume_downloaded', 'contact_clicked', 'github_clicked', 'linkedin_clicked') AND ${whereClause} GROUP BY event`
       ),
       supabaseAdmin
         .from('live_visitors')
