@@ -91,16 +91,16 @@ export const LoginPage: React.FC = () => {
 
             <AnimatePresence>
               {error && (
-                <motion.div
-                  initial={reduced ? { opacity: 1 } : { opacity: 0, y: -4 }}
+                <motion.p
+                  initial={reduced ? { opacity: 1 } : { opacity: 0, y: -3 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.18 }}
-                  className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-900 dark:text-red-300 flex items-start gap-2"
+                  transition={{ duration: 0.16 }}
+                  className="text-xs font-medium text-red-700 dark:text-red-400 flex items-center gap-1.5"
                 >
-                  <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                  <AlertCircle size={13} className="shrink-0" />
                   <span>{error}</span>
-                </motion.div>
+                </motion.p>
               )}
             </AnimatePresence>
 
@@ -118,9 +118,14 @@ export const LoginPage: React.FC = () => {
                   required
                   autoComplete="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) setError(null);
+                  }}
                   placeholder="admin@mydeen.dev"
-                  className="hybrid-input pl-10 pr-4 py-2.5 min-h-[42px]"
+                  className={`hybrid-input pl-10 pr-4 py-2.5 min-h-[42px] ${
+                    error ? '!border-red-600/70 dark:!border-red-400/70' : ''
+                  }`}
                 />
               </div>
             </div>
@@ -147,9 +152,14 @@ export const LoginPage: React.FC = () => {
                   required
                   autoComplete="current-password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError(null);
+                  }}
                   placeholder="••••••••••••"
-                  className="hybrid-input pl-10 pr-10 py-2.5 min-h-[42px]"
+                  className={`hybrid-input pl-10 pr-10 py-2.5 min-h-[42px] ${
+                    error ? '!border-red-600/70 dark:!border-red-400/70' : ''
+                  }`}
                 />
                 <button
                   type="button"

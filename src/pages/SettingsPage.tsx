@@ -126,19 +126,19 @@ export const SettingsPage: React.FC = () => {
         <form onSubmit={handlePasswordChange} className="space-y-3">
           <AnimatePresence>
             {pwMsg && (
-              <motion.div
-                initial={reduced ? { opacity: 1 } : { opacity: 0, y: -4 }}
+              <motion.p
+                initial={reduced ? { opacity: 1 } : { opacity: 0, y: -3 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.16, ease: HYBRID_EASE }}
-                className={`p-3 rounded-xl text-xs border ${
+                className={`text-xs font-medium ${
                   pwMsg.type === 'ok'
-                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-300'
-                    : 'bg-red-500/15 border-red-500/30 text-red-900 dark:text-red-300'
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : 'text-red-700 dark:text-red-400'
                 }`}
               >
                 {pwMsg.text}
-              </motion.div>
+              </motion.p>
             )}
           </AnimatePresence>
 

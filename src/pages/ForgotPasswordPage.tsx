@@ -60,10 +60,10 @@ export const ForgotPasswordPage: React.FC = () => {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-900 dark:text-red-300 flex items-start gap-2">
-                <AlertCircle size={15} className="shrink-0 mt-0.5" />
+              <p className="text-xs font-medium text-red-700 dark:text-red-400 flex items-center gap-1.5">
+                <AlertCircle size={13} className="shrink-0" />
                 <span>{error}</span>
-              </div>
+              </p>
             )}
 
             <div>
