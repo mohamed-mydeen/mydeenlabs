@@ -13,7 +13,7 @@ function DeviceIcon({ type }: { type: 'Mobile' | 'Desktop' | 'Tablet' }) {
 }
 
 export const LiveVisitorsPage: React.FC = () => {
-  const { visitors, loading, error, refresh, activeWindowSeconds } = useLiveVisitors();
+  const { visitors, loading, isFetching, error, refresh, activeWindowSeconds } = useLiveVisitors();
   const reduced = useReducedMotion();
 
   return (
@@ -38,10 +38,10 @@ export const LiveVisitorsPage: React.FC = () => {
         <motion.button
           whileTap={reduced ? undefined : { scale: 0.95 }}
           onClick={refresh}
-          disabled={loading}
+          disabled={isFetching}
           className="inline-flex items-center gap-2 px-3.5 py-2 min-h-[38px] rounded-xl hybrid-panel text-xs font-mono font-semibold hover:border-[#181818]/30 dark:hover:border-[#E8D2B5]/30 transition-colors cursor-pointer self-start sm:self-auto"
         >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
           <span>Refresh</span>
         </motion.button>
       </div>

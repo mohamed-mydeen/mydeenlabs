@@ -1,18 +1,19 @@
 import { QueryClient } from '@tanstack/react-query';
 
 /**
- * Centralized TanStack Query client with data-freshness-aware cache policies.
- * - Analytics summaries: 60s staleTime
- * - Live visitors: 15s staleTime (updated via Realtime / controlled polling)
- * - Contact messages: 30s staleTime (updated via Realtime / optimistic-free invalidation)
+ * Centralized TanStack Query client with Socket.IO-like instant navigation & background sync.
+ * - Analytics summaries stay warm in memory for 5 minutes (gcTime 30 minutes)
+ *   so switching between Today / 7d / 30d / 90d or navigating routes is instant.
+ * - Live visitors & Contact messages update directly in-place via Supabase Realtime WebSockets.
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60_000,
-      gcTime: 5 * 60_000,
+      staleTime: 5 * 60_000,
+      gcTime: 30 * 60_000,
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchOnMount: false,
       refetchOnReconnect: true,
     },
     mutations: {

@@ -23,7 +23,7 @@ import {
 import { formatDuration, formatNumber } from '../utils/formatters';
 
 export const OverviewPage: React.FC = () => {
-  const { range, setRange, data, loading, error, refresh } = useAnalytics('7d');
+  const { range, setRange, data, loading, isFetching, error, refresh } = useAnalytics('7d');
   const { visitors: liveVisitors } = useLiveVisitors();
   const reduced = useReducedMotion();
 
@@ -45,12 +45,12 @@ export const OverviewPage: React.FC = () => {
           <motion.button
             whileTap={reduced ? undefined : { scale: 0.94 }}
             onClick={refresh}
-            disabled={loading}
+            disabled={isFetching}
             className="min-w-[38px] min-h-[38px] p-2 rounded-xl hybrid-panel hover:border-[#181818]/30 dark:hover:border-[#E8D2B5]/30 transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center"
             title="Refresh analytics"
             aria-label="Refresh analytics"
           >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} />
           </motion.button>
         </div>
       </div>

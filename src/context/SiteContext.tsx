@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { SelectOption } from '../components/MotionPrimitives';
+import { DateRangeOption } from '../types/analytics';
 
 export type SiteId = 'mydeen.vercel.app' | 'mydeenblog.vercel.app' | 'all';
 
@@ -12,6 +13,8 @@ export const SITE_OPTIONS: SelectOption<SiteId>[] = [
 interface SiteContextValue {
   site: SiteId;
   setSite: (site: SiteId) => void;
+  range: DateRangeOption;
+  setRange: (range: DateRangeOption) => void;
   siteUrl: string;
   siteLabel: string;
 }
@@ -33,6 +36,8 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return 'mydeen.vercel.app';
   });
 
+  const [range, setRange] = useState<DateRangeOption>('7d');
+
   const setSite = (next: SiteId) => {
     setSiteState(next);
     localStorage.setItem(STORAGE_KEY, next);
@@ -51,7 +56,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       : 'mydeen.vercel.app';
 
   return (
-    <SiteContext.Provider value={{ site, setSite, siteUrl, siteLabel }}>
+    <SiteContext.Provider value={{ site, setSite, range, setRange, siteUrl, siteLabel }}>
       {children}
     </SiteContext.Provider>
   );
