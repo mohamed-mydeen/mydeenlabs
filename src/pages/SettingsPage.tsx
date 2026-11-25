@@ -50,7 +50,8 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await signOut();
+    await signOut('manual');
+    window.history.replaceState(null, '', '/login');
     navigate('/login', { replace: true });
   };
 

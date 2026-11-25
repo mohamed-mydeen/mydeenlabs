@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import {
+  supabase,
+  isSupabaseConfigured,
+  clearSensitiveSessionData,
+} from '../services/supabaseClient';
 
 interface AuthContextValue {
   user: User | null;
@@ -8,7 +12,8 @@ interface AuthContextValue {
   loading: boolean;
   isConfigured: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+  signOut: (reason?: 'manual' | 'timeout' | 'expired') => Promise<void>;
+  verifySession: () => Promise<boolean>;
   sendPasswordReset: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
 }
@@ -29,13 +34,55 @@ function mapAuthError(message: string): string {
   if (lower.includes('jwt expired') || lower.includes('session')) {
     return 'Your session has expired. Please sign in again.';
   }
-  return message;
+  return 'Authentication failed. Please check your credentials and try again.';
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+
+  const performCleanSignOut = useCallback(async () => {
+    try {
+      const client = supabase;
+      if (client) {
+        await client.auth.signOut({ scope: 'global' }).catch(() => client.auth.signOut());
+      }
+    } finally {
+      await clearSensitiveSessionData();
+      setSession(null);
+      setUser(null);
+    }
+  }, []);
+
+  /**
+   * Independently verifies the current session with Supabase Auth server
+   * (does not blindly trust cached client session state).
+   */
+  const verifySession = useCallback(async (): Promise<boolean> => {
+    if (!supabase || !isSupabaseConfigured) return false;
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        setSession(null);
+        setUser(null);
+        return false;
+      }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        await performCleanSignOut();
+        return false;
+      }
+
+      setSession(sessionData.session);
+      setUser(userData.user);
+      return true;
+    } catch {
+      await performCleanSignOut();
+      return false;
+    }
+  }, [performCleanSignOut]);
 
   useEffect(() => {
     if (!supabase || !isSupabaseConfigured) {
@@ -45,53 +92,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let mounted = true;
 
-    supabase.auth
-      .getSession()
-      .then(({ data, error }) => {
-        if (!mounted) return;
-        if (error) {
-          setSession(null);
-          setUser(null);
-        } else {
-          setSession(data.session);
-          setUser(data.session?.user ?? null);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        if (mounted) setLoading(false);
-      });
+    verifySession().finally(() => {
+      if (mounted) setLoading(false);
+    });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!mounted) return;
+      if (event === 'SIGNED_OUT' || !nextSession) {
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
       setSession(nextSession);
-      setUser(nextSession?.user ?? null);
+      setUser(nextSession.user);
       setLoading(false);
     });
+
+    // Re-verify session when tab/PWA regains focus or comes back online
+    const handleVisibilityOrOnline = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        void verifySession();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrOnline);
+    window.addEventListener('online', handleVisibilityOrOnline);
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityOrOnline);
+      window.removeEventListener('online', handleVisibilityOrOnline);
     };
-  }, []);
+  }, [verifySession]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!supabase) {
-      return { error: 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment.' };
+      return {
+        error:
+          'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment.',
+      };
     }
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
     if (error) return { error: mapAuthError(error.message) };
+    setSession(data.session);
+    setUser(data.user);
     return { error: null };
   }, []);
 
   const signOut = useCallback(async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-  }, []);
+    await performCleanSignOut();
+  }, [performCleanSignOut]);
 
   const sendPasswordReset = useCallback(async (email: string) => {
     if (!supabase) {
@@ -121,6 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isConfigured: isSupabaseConfigured,
         signIn,
         signOut,
+        verifySession,
         sendPasswordReset,
         updatePassword,
       }}

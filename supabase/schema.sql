@@ -129,3 +129,42 @@ CREATE POLICY "Deny anonymous access to contact_messages"
 -- Enable Supabase Realtime for live new-message notifications
 ALTER PUBLICATION supabase_realtime ADD TABLE public.contact_messages;
 
+-- ============================================================================
+-- 7. EXPLICIT PRIVILEGE REVOCATION (DEFENSE-IN-DEPTH)
+-- ============================================================================
+-- Ensure anonymous / public roles have zero direct table privileges even if RLS is misconfigured.
+REVOKE ALL ON public.live_visitors FROM anon, public;
+REVOKE ALL ON public.contact_messages FROM anon, public;
+
+GRANT SELECT ON public.live_visitors TO authenticated;
+GRANT SELECT, UPDATE, DELETE ON public.contact_messages TO authenticated;
+
+-- ============================================================================
+-- 8. OPTIONAL PRIVATE DASHBOARD TABLES (CLIENT ORDERS, NOTIFICATIONS, LOGS)
+-- ============================================================================
+-- If you add client_orders, admin_notifications, or activity_logs, keep RLS enabled:
+CREATE TABLE IF NOT EXISTS public.activity_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_email TEXT,
+  action TEXT NOT NULL,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.activity_logs FROM anon, public;
+GRANT SELECT, INSERT ON public.activity_logs TO authenticated;
+
+DROP POLICY IF EXISTS "Allow authenticated admin to read activity_logs" ON public.activity_logs;
+CREATE POLICY "Allow authenticated admin to read activity_logs"
+  ON public.activity_logs FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Allow authenticated admin to insert activity_logs" ON public.activity_logs;
+CREATE POLICY "Allow authenticated admin to insert activity_logs"
+  ON public.activity_logs FOR INSERT TO authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Deny anonymous access to activity_logs" ON public.activity_logs;
+CREATE POLICY "Deny anonymous access to activity_logs"
+  ON public.activity_logs FOR ALL TO anon USING (false) WITH CHECK (false);
+
+

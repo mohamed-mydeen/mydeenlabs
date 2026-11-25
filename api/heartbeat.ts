@@ -16,6 +16,7 @@ function isRateLimited(ip: string): boolean {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   const configuredOrigins = (process.env.ALLOWED_ORIGIN || 'https://mydeen.vercel.app')
     .split(',')
     .map((o) => o.trim().replace(/\/+$/, ''))

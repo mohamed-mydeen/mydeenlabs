@@ -50,6 +50,9 @@ function classifySource(domain: string): 'Direct' | 'Google' | 'LinkedIn' | 'Git
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -78,6 +81,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: userData, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !userData?.user) {
     return res.status(401).json({ error: 'Your session has expired. Please sign in again.' });
+  }
+
+  const allowedAdmins = (process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  if (
+    allowedAdmins.length > 0 &&
+    !allowedAdmins.includes((userData.user.email || '').toLowerCase())
+  ) {
+    return res.status(403).json({ error: 'Forbidden: admin access required.' });
   }
 
   if (!posthogKey || !posthogProjectId) {

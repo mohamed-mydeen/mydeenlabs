@@ -12,6 +12,11 @@ const VALID_CATEGORIES = new Set([
 
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
+function sanitizeText(input: string): string {
+  // Strip control characters and angle brackets to mitigate XSS/injection
+  return input.replace(/[\u0000-\u001F\u007F<>]/g, '').trim();
+}
+
 // Simple per-instance rate limiter: max 5 contact submissions per 5 minutes per IP
 const rateMap = new Map<string, { count: number; resetAt: number }>();
 
@@ -27,6 +32,7 @@ function isRateLimited(ip: string): boolean {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   const configuredOrigins = (process.env.ALLOWED_ORIGIN || 'https://mydeen.vercel.app')
     .split(',')
     .map((o) => o.trim().replace(/\/+$/, ''))
@@ -77,14 +83,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Invalid request format.' });
   }
 
-  const fullName = String(body.full_name || '').trim();
-  const email = String(body.email || '').trim();
-  const phone = body.phone ? String(body.phone).trim().slice(0, 40) : null;
-  const company = body.company ? String(body.company).trim().slice(0, 120) : null;
-  const rawCategory = String(body.enquiry_category || 'General Enquiry').trim();
+  // Honeypot spam trap: silently succeed if automated bot fills hidden field
+  if (body.website || body._hp) {
+    return res.status(200).json({ ok: true });
+  }
+
+  const fullName = sanitizeText(String(body.full_name || ''));
+  const email = sanitizeText(String(body.email || ''));
+  const phone = body.phone ? sanitizeText(String(body.phone)).slice(0, 40) : null;
+  const company = body.company ? sanitizeText(String(body.company)).slice(0, 120) : null;
+  const rawCategory = sanitizeText(String(body.enquiry_category || 'General Enquiry'));
   const enquiryCategory = VALID_CATEGORIES.has(rawCategory) ? rawCategory : 'General Enquiry';
-  const subject = String(body.subject || '').trim();
-  const message = String(body.message || '').trim();
+  const subject = sanitizeText(String(body.subject || ''));
+  const message = sanitizeText(String(body.message || ''));
 
   if (fullName.length < 2 || fullName.length > 120) {
     return res.status(400).json({ error: 'Please enter your full name (at least 2 characters).' });

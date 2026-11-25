@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#E8D2B5" />
+    <title>Offline — Mydeen Analytics</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        background: #E8D2B5;
+        color: #181818;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #141414;
+          color: #f2efe9;
+        }
+        .card {
+          background: #1a1a1a !important;
+          border-color: rgba(255, 255, 255, 0.12) !important;
+        }
+      }
+      .card {
+        max-width: 420px;
+        width: 100%;
+        padding: 2rem;
+        border-radius: 1.25rem;
+        background: rgba(253, 252, 249, 0.72);
+        border: 1px solid rgba(165, 167, 155, 0.45);
+        text-align: center;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: #181818;
+        color: #E8D2B5;
+        font-weight: 700;
+        margin-bottom: 1rem;
+      }
+      h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
+      p { font-size: 0.875rem; opacity: 0.78; line-height: 1.5; margin: 0 0 1.25rem; }
+      button {
+        padding: 0.7rem 1.25rem;
+        border-radius: 0.75rem;
+        border: none;
+        background: #181818;
+        color: #E8D2B5;
+        font-weight: 600;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="badge">/m</div>
+      <h1>Internet Connection Required</h1>
+      <p>
+        Mydeen Analytics requires an active internet connection to verify your session and load live analytics, client orders, and contact messages. Private data is never cached offline.
+      </p>
+      <button onclick="window.location.reload()">Retry Connection</button>
+    </main>
+  </body>
+</html>

@@ -20,7 +20,11 @@ import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { SITE_OPTIONS, useSite } from '../context/SiteContext';
 import { useContactMessages } from '../hooks/useContactMessages';
+import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 import { HYBRID_EASE, HybridSelect } from '../components/MotionPrimitives';
+import { InactivityModal } from '../components/InactivityModal';
+import { OfflineOverlay } from '../components/OfflineOverlay';
+import { PwaInstallPrompt } from '../components/PwaInstallPrompt';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -33,7 +37,7 @@ const NAV_ITEMS = [
 ];
 
 export const DashboardLayout: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, verifySession } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { site, setSite, siteUrl, siteLabel } = useSite();
   const { stats: messageStats } = useContactMessages();
@@ -43,9 +47,18 @@ export const DashboardLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    await signOut();
+    await signOut('manual');
+    window.history.replaceState(null, '', '/login');
     navigate('/login', { replace: true });
   };
+
+  const handleTimeoutLogout = async () => {
+    await signOut('timeout');
+    window.history.replaceState(null, '', '/login?reason=timeout');
+    navigate('/login?reason=timeout', { replace: true });
+  };
+
+  const inactivity = useInactivityTimeout(Boolean(user), handleTimeoutLogout);
 
   return (
     <div className="min-h-screen bg-[#E8D2B5] dark:bg-[#141414] text-[#181818] dark:text-[#f2efe9] flex flex-col lg:flex-row">
@@ -175,7 +188,7 @@ export const DashboardLayout: React.FC = () => {
       </aside>
 
       {/* ─── MOBILE iOS-INSPIRED TOP GLASS HEADER ─────────────────────────── */}
-      <header className="lg:hidden sticky top-0 z-40 bg-[#E8D2B5]/85 dark:bg-[#141414]/85 backdrop-blur-xl border-b border-[#A5A79B]/40 dark:border-white/10 px-4 py-2.5 flex items-center justify-between">
+      <header className="lg:hidden sticky top-0 z-40 bg-[#E8D2B5]/85 dark:bg-[#141414]/85 backdrop-blur-xl border-b border-[#A5A79B]/40 dark:border-white/10 px-4 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818] flex items-center justify-center font-display font-bold text-xs shadow-sm">
             /m
@@ -291,7 +304,8 @@ export const DashboardLayout: React.FC = () => {
 
       {/* ─── MAIN WORKSPACE CONTENT AREA ──────────────────────────────────── */}
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 pb-28 lg:pb-10 max-w-6xl w-full mx-auto">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 pb-28 lg:pb-10 max-w-6xl w-full mx-auto space-y-5">
+          <PwaInstallPrompt />
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -306,10 +320,19 @@ export const DashboardLayout: React.FC = () => {
         </main>
       </div>
 
+      {/* ─── SECURITY & OFFLINE GUARDS ────────────────────────────────────── */}
+      <InactivityModal
+        open={inactivity.showWarning}
+        secondsRemaining={inactivity.secondsRemaining}
+        onStayLoggedIn={inactivity.stayLoggedIn}
+        onSignOut={handleLogout}
+      />
+      <OfflineOverlay onReconnect={() => void verifySession()} />
+
       {/* ─── MOBILE FLOATING iOS-STYLE BOTTOM DOCK ────────────────────────── */}
       <nav
         aria-label="Mobile quick navigation"
-        className="lg:hidden fixed bottom-3 inset-x-3 z-30 rounded-2xl bg-[#fdfcf9]/85 dark:bg-[#1a1a1a]/88 backdrop-blur-xl border border-[#A5A79B]/45 dark:border-white/15 shadow-[0_12px_32px_rgba(24,24,24,0.16)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.55)] px-1.5 py-1.5 flex items-center justify-around"
+        className="lg:hidden fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] inset-x-3 z-30 rounded-2xl bg-[#fdfcf9]/85 dark:bg-[#1a1a1a]/88 backdrop-blur-xl border border-[#A5A79B]/45 dark:border-white/15 shadow-[0_12px_32px_rgba(24,24,24,0.16)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.55)] px-1.5 py-1.5 flex items-center justify-around"
       >
         {NAV_ITEMS.slice(0, 5).map((item) => {
           const Icon = item.icon;

@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Lock, Mail, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, ArrowRight, AlertCircle, Clock } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { HYBRID_EASE } from '../components/MotionPrimitives';
+import { OfflineOverlay } from '../components/OfflineOverlay';
+import { PwaInstallPrompt } from '../components/PwaInstallPrompt';
 
 export const LoginPage: React.FC = () => {
   const { user, loading: authLoading, isConfigured, signIn } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isTimeoutRedirect = searchParams.get('reason') === 'timeout';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -78,6 +82,12 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 sm:p-7 space-y-4">
+            {isTimeoutRedirect && !error && (
+              <p className="text-xs font-medium text-[#181818]/80 dark:text-[#E8D2B5] flex items-center gap-1.5">
+                <Clock size={13} className="shrink-0" />
+                <span>Signed out due to inactivity. Please sign in again.</span>
+              </p>
+            )}
             {!isConfigured && (
               <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-xs text-[#181818] dark:text-[#E8D2B5] flex items-start gap-2">
                 <AlertCircle size={15} className="shrink-0 mt-0.5" />
@@ -187,7 +197,12 @@ export const LoginPage: React.FC = () => {
             </p>
           </form>
         </div>
+
+        <div className="mt-4">
+          <PwaInstallPrompt />
+        </div>
       </motion.div>
+      <OfflineOverlay />
     </div>
   );
 };
