@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Verify no server secrets in client bundle
+        run: |
+          if grep -rq "SUPABASE_SERVICE_ROLE_KEY\|POSTHOG_PERSONAL_API_KEY" dist/assets/; then
+            echo "Secret leaked in client bundle!"
+            exit 1
+          fi

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
@@ -15,16 +15,22 @@ import {
   Moon,
   ExternalLink,
   Mail,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ChevronRight,
+  Search,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { SITE_OPTIONS, useSite } from '../context/SiteContext';
+import { useWorkspace } from '../context/WorkspaceContext';
 import { useContactMessages } from '../hooks/useContactMessages';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 import { HYBRID_EASE, HybridSelect } from '../components/MotionPrimitives';
 import { InactivityModal } from '../components/InactivityModal';
 import { OfflineOverlay } from '../components/OfflineOverlay';
 import { PwaInstallPrompt } from '../components/PwaInstallPrompt';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -40,11 +46,16 @@ export const DashboardLayout: React.FC = () => {
   const { user, signOut, verifySession } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { site, setSite, siteUrl, siteLabel } = useSite();
-  const { stats: messageStats } = useContactMessages();
+  const { activeWorkspace } = useWorkspace();
+  const { stats: messageStats, realtimeStatus } = useContactMessages();
   const navigate = useNavigate();
   const location = useLocation();
   const reduced = useReducedMotion();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState('');
 
   const handleLogout = async () => {
     await signOut('manual');
@@ -60,46 +71,94 @@ export const DashboardLayout: React.FC = () => {
 
   const inactivity = useInactivityTimeout(Boolean(user), handleTimeoutLogout);
 
+  // Global Cmd/Ctrl+K shortcut for quick workspace navigation
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandOpen((prev) => !prev);
+      } else if (e.key === 'Escape') {
+        setCommandOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  const currentNav = useMemo(
+    () =>
+      NAV_ITEMS.find((item) =>
+        item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
+      ) || NAV_ITEMS[0],
+    [location.pathname]
+  );
+
+  const filteredCommands = useMemo(() => {
+    const q = commandQuery.trim().toLowerCase();
+    if (!q) return NAV_ITEMS;
+    return NAV_ITEMS.filter((item) => item.label.toLowerCase().includes(q));
+  }, [commandQuery]);
+
   return (
     <div className="min-h-screen bg-[#E8D2B5] dark:bg-[#141414] text-[#181818] dark:text-[#f2efe9] flex flex-col lg:flex-row">
-      {/* ─── DESKTOP UBUNTU-INSPIRED WORKSPACE SIDEBAR ─────────────────────── */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-[#E8D2B5]/90 dark:bg-[#161616]/95 backdrop-blur-xl border-r border-[#A5A79B]/40 dark:border-white/10 p-4 justify-between z-30">
-        <div className="space-y-6">
-          {/* Brand Header */}
-          <div className="flex items-center justify-between px-1 pt-1">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818] flex items-center justify-center font-display font-bold text-sm border border-[#A5A79B]/40 shadow-sm">
+      {/* ─── DESKTOP UBUNTU-INSPIRED COLLAPSIBLE WORKSPACE SIDEBAR ────────── */}
+      <aside
+        className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 bg-[#E8D2B5]/90 dark:bg-[#161616]/95 backdrop-blur-xl border-r border-[#A5A79B]/40 dark:border-white/10 p-3.5 justify-between z-30 transition-[width] duration-200 ${
+          sidebarCollapsed ? 'lg:w-[76px]' : 'lg:w-64'
+        }`}
+      >
+        <div className="space-y-5">
+          {/* Brand Header & Collapse Toggle */}
+          <div className="flex items-center justify-between gap-2 px-1 pt-1">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818] flex items-center justify-center font-display font-bold text-sm border border-[#A5A79B]/40 shadow-sm shrink-0">
                 /m
               </div>
-              <div>
-                <h1 className="text-sm font-bold font-display leading-none tracking-tight">
-                  Mydeen Analytics
-                </h1>
-                <p className="text-[10px] font-mono opacity-65 mt-1 truncate max-w-[140px]">
-                  {siteLabel}
-                </p>
-              </div>
+              {!sidebarCollapsed && (
+                <div className="min-w-0">
+                  <h1 className="text-sm font-bold font-display leading-none tracking-tight truncate">
+                    Mydeen Analytics
+                  </h1>
+                  <p className="text-[10px] font-mono opacity-65 mt-1 truncate">
+                    {siteLabel}
+                  </p>
+                </div>
+              )}
             </div>
+
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed((prev) => !prev)}
+              className="p-1.5 rounded-lg hover:bg-[#A5A79B]/25 dark:hover:bg-white/10 opacity-70 hover:opacity-100 cursor-pointer shrink-0"
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {sidebarCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+            </button>
           </div>
 
-          {/* Site Selector Dropdown */}
-          <div className="space-y-1.5">
-            <div className="px-1 text-[10px] font-mono uppercase tracking-widest opacity-50">
-              Property
+          {/* Site Selector Dropdown (expanded mode) */}
+          {!sidebarCollapsed && (
+            <div className="space-y-1.5">
+              <div className="px-1 text-[10px] font-mono uppercase tracking-widest opacity-50">
+                Property
+              </div>
+              <HybridSelect
+                value={site}
+                options={SITE_OPTIONS}
+                onChange={setSite}
+                ariaLabel="Select site property"
+              />
             </div>
-            <HybridSelect
-              value={site}
-              options={SITE_OPTIONS}
-              onChange={setSite}
-              ariaLabel="Select site property"
-            />
-          </div>
+          )}
 
           {/* Workspace Navigation */}
           <nav className="space-y-1" aria-label="Workspace navigation">
-            <div className="px-3 pb-1.5 text-[10px] font-mono uppercase tracking-widest opacity-50">
-              Workspace
-            </div>
+            {!sidebarCollapsed && (
+              <div className="px-3 pb-1 text-[10px] font-mono uppercase tracking-widest opacity-50">
+                Workspace
+              </div>
+            )}
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               return (
@@ -107,11 +166,14 @@ export const DashboardLayout: React.FC = () => {
                   key={item.to}
                   to={item.to}
                   end={item.end}
+                  title={sidebarCollapsed ? item.label : undefined}
                   className="block relative"
                 >
                   {({ isActive }) => (
                     <div
-                      className={`relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 ${
+                      className={`relative flex items-center ${
+                        sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3.5'
+                      } py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 ${
                         isActive
                           ? 'text-[#181818] font-semibold'
                           : 'text-[#181818]/75 dark:text-[#f2efe9]/75 hover:bg-[#A5A79B]/18 dark:hover:bg-white/5 hover:text-[#181818] dark:hover:text-[#f2efe9]'
@@ -125,18 +187,14 @@ export const DashboardLayout: React.FC = () => {
                         />
                       )}
                       <Icon size={17} className="relative z-10 shrink-0" />
-                      <span className="relative z-10 flex-1 truncate">
-                        {item.label}
-                      </span>
-                      {item.to === '/messages' && messageStats.unread > 0 && (
+                      {!sidebarCollapsed && (
+                        <span className="relative z-10 flex-1 truncate">{item.label}</span>
+                      )}
+                      {!sidebarCollapsed && item.to === '/messages' && messageStats.unread > 0 && (
                         <motion.span
                           initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
-                          className={`relative z-10 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full ${
-                            isActive
-                              ? 'bg-[#181818] text-[#E8D2B5]'
-                              : 'bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818]'
-                          }`}
+                          className="relative z-10 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818]"
                         >
                           {messageStats.unread}
                         </motion.span>
@@ -151,20 +209,28 @@ export const DashboardLayout: React.FC = () => {
 
         {/* Sidebar Footer */}
         <div className="space-y-2.5 pt-4 border-t border-[#A5A79B]/35 dark:border-white/10">
-          <a
-            href={siteUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between px-3.5 py-2.5 rounded-xl hybrid-inset text-xs font-mono hover:border-[#181818]/30 dark:hover:border-[#E8D2B5]/30 transition-colors"
-          >
-            <span>Open {site === 'mydeenblog.vercel.app' ? 'Blog' : 'Portfolio'}</span>
-            <ExternalLink size={13} className="opacity-70" />
-          </a>
+          {!sidebarCollapsed && (
+            <a
+              href={siteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between px-3.5 py-2.5 rounded-xl hybrid-inset text-xs font-mono hover:border-[#181818]/30 dark:hover:border-[#E8D2B5]/30 transition-colors"
+            >
+              <span>Open {site === 'mydeenblog.vercel.app' ? 'Blog' : 'Portfolio'}</span>
+              <ExternalLink size={13} className="opacity-70" />
+            </a>
+          )}
 
-          <div className="flex items-center justify-between gap-2 px-1 py-0.5">
-            <span className="text-[11px] font-mono opacity-70 truncate">
-              {user?.email}
-            </span>
+          <div
+            className={`flex items-center ${
+              sidebarCollapsed ? 'justify-center' : 'justify-between gap-2 px-1'
+            } py-0.5`}
+          >
+            {!sidebarCollapsed && (
+              <span className="text-[11px] font-mono opacity-70 truncate">
+                {user?.email}
+              </span>
+            )}
             <motion.button
               whileTap={reduced ? undefined : { scale: 0.92 }}
               onClick={toggleTheme}
@@ -179,10 +245,11 @@ export const DashboardLayout: React.FC = () => {
           <motion.button
             whileTap={reduced ? undefined : { scale: 0.98 }}
             onClick={handleLogout}
+            title={sidebarCollapsed ? 'Sign Out' : undefined}
             className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#181818] text-[#E8D2B5] dark:bg-[#E8D2B5] dark:text-[#181818] text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
           >
             <LogOut size={14} />
-            <span>Sign Out</span>
+            {!sidebarCollapsed && <span>Sign Out</span>}
           </motion.button>
         </div>
       </aside>
@@ -303,22 +370,128 @@ export const DashboardLayout: React.FC = () => {
       </AnimatePresence>
 
       {/* ─── MAIN WORKSPACE CONTENT AREA ──────────────────────────────────── */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
+      <div
+        className={`flex-1 flex flex-col min-w-0 transition-[padding] duration-200 ${
+          sidebarCollapsed ? 'lg:pl-[76px]' : 'lg:pl-64'
+        }`}
+      >
+        {/* Desktop Top Workspace Bar (Breadcrumbs, Realtime Status, Quick Jump) */}
+        <div className="hidden lg:flex sticky top-0 z-20 h-14 px-8 items-center justify-between bg-[#E8D2B5]/80 dark:bg-[#141414]/80 backdrop-blur-xl border-b border-[#A5A79B]/35 dark:border-white/10">
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span className="opacity-60">{activeWorkspace.name}</span>
+            <ChevronRight size={13} className="opacity-40" />
+            <span className="font-semibold">{currentNav.label}</span>
+            <span className="ml-2 px-2 py-0.5 rounded-md bg-[#A5A79B]/25 dark:bg-white/10 text-[10px] uppercase">
+              {activeWorkspace.mode}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hybrid-inset text-[11px] font-mono">
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  realtimeStatus === 'live'
+                    ? 'bg-emerald-500'
+                    : realtimeStatus === 'polling'
+                    ? 'bg-amber-500'
+                    : 'bg-[#A5A79B]'
+                }`}
+              />
+              <span>
+                {realtimeStatus === 'live'
+                  ? 'Realtime'
+                  : realtimeStatus === 'polling'
+                  ? 'Polling'
+                  : 'Connecting'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCommandOpen(true)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl hybrid-inset text-xs font-mono opacity-80 hover:opacity-100 cursor-pointer transition-opacity"
+            >
+              <Search size={13} />
+              <span>Jump</span>
+              <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-[#A5A79B]/25 dark:bg-white/10">
+                ⌘K
+              </kbd>
+            </button>
+          </div>
+        </div>
+
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 pb-28 lg:pb-10 max-w-6xl w-full mx-auto space-y-5">
           <PwaInstallPrompt />
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={reduced ? { opacity: 1 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduced ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.2, ease: HYBRID_EASE }}
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+          <ErrorBoundary>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={reduced ? { opacity: 1 } : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduced ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                transition={{ duration: 0.2, ease: HYBRID_EASE }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
+          </ErrorBoundary>
         </main>
       </div>
+
+      {/* ─── QUICK JUMP COMMAND PALETTE (⌘K) ──────────────────────────────── */}
+      <AnimatePresence>
+        {commandOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.14 }}
+            onClick={() => setCommandOpen(false)}
+            className="fixed inset-0 z-[75] bg-black/50 backdrop-blur-xs flex items-start justify-center pt-20 px-4"
+          >
+            <motion.div
+              initial={reduced ? { opacity: 1 } : { opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
+              transition={{ duration: 0.16, ease: HYBRID_EASE }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl bg-[#E8D2B5] dark:bg-[#1a1a1a] border border-[#A5A79B]/50 dark:border-white/15 shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#A5A79B]/35 dark:border-white/10">
+                <Search size={15} className="opacity-60" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={commandQuery}
+                  onChange={(e) => setCommandQuery(e.target.value)}
+                  placeholder="Jump to page..."
+                  className="w-full bg-transparent text-sm focus:outline-none"
+                />
+              </div>
+              <div className="p-2 space-y-0.5 max-h-64 overflow-y-auto">
+                {filteredCommands.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.to}
+                      type="button"
+                      onClick={() => {
+                        navigate(item.to);
+                        setCommandOpen(false);
+                        setCommandQuery('');
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-[#A5A79B]/30 dark:hover:bg-white/10 text-left cursor-pointer"
+                    >
+                      <Icon size={15} className="opacity-70" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── SECURITY & OFFLINE GUARDS ────────────────────────────────────── */}
       <InactivityModal

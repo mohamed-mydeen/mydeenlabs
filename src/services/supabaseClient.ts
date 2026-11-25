@@ -95,6 +95,8 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
     })
   : null;
 
+export type RealtimeConnectionStatus = 'connecting' | 'live' | 'reconnecting' | 'polling';
+
 /**
  * Subscribe to Postgres Realtime changes for a table using a unique
  * per-subscription channel name so React 18 StrictMode double-mounts never
@@ -103,10 +105,16 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
 export function subscribeToTableChanges<T = Record<string, unknown>>(
   channelPrefix: string,
   table: string,
-  onChange: (payload: TableChangePayload<T>) => void
+  onChange: (payload: TableChangePayload<T>) => void,
+  onStatusChange?: (status: RealtimeConnectionStatus) => void
 ): () => void {
   const client = supabase;
-  if (!client) return () => {};
+  if (!client) {
+    onStatusChange?.('polling');
+    return () => {};
+  }
+
+  onStatusChange?.('connecting');
 
   const suffix =
     typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -126,7 +134,13 @@ export function subscribeToTableChanges<T = Record<string, unknown>>(
         });
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        onStatusChange?.('live');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        onStatusChange?.('polling');
+      }
+    });
 
   return () => {
     void client.removeChannel(channel);

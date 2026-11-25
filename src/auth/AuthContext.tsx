@@ -5,6 +5,7 @@ import {
   isSupabaseConfigured,
   clearSensitiveSessionData,
 } from '../services/supabaseClient';
+import { clearQueryCache } from '../services/queryClient';
 
 interface AuthContextValue {
   user: User | null;
@@ -50,6 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } finally {
       await clearSensitiveSessionData();
+      clearQueryCache();
       setSession(null);
       setUser(null);
     }
